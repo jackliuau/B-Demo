@@ -53,18 +53,9 @@ BOOL CChildView::PreCreateWindow(CREATESTRUCT& cs)
     cs.lpszClass = AfxRegisterWndClass(CS_HREDRAW|CS_VREDRAW|CS_DBLCLKS, 
         ::LoadCursor(NULL, IDC_ARROW), reinterpret_cast<HBRUSH>(COLOR_WINDOW+1), NULL);
 
-    m_cgs.SetOwner(this);
-    m_cgs_copy.SetOwner(this);
-
-    m_bLBtnClickInClient = false;
-    m_bDraggable = false;
-    m_bDragging = false;
-
     m_pGdiplusGraphics = NULL;
 
-    m_bBezierIsOn = true;
-    m_bBSplineIsOn = true;
-    m_bOffsetDrawIsOn = true;
+    Init();
 
     return TRUE;
 }
@@ -371,6 +362,15 @@ void CChildView::DrawBSpline(CtrlPoints cps, int iOffsetDraw, DWORD dwSleep)
     if (iOffsetDraw > 0)
         DrawLine(m_bOffsetDrawIsOn, ptTo, Offset(ptTo, iOffsetDraw), clr);
 
+    if (cps.IsLinear())
+    {
+        DrawLine(true, ptFrom, ptTo, clr);
+        if (iOffsetDraw > 0)
+            DrawLine(m_bOffsetDrawIsOn, Offset(ptFrom, iOffsetDraw), Offset(ptTo, iOffsetDraw), clr);
+
+        return;
+    }
+
     const int iCurrentK = 3;
     for (double u = iCurrentK; u <= vecPts.size(); u += 0.05)
     {
@@ -437,6 +437,15 @@ void CChildView::DrawBezier(CtrlPoints cps, int iOffsetDraw, DWORD dwSleep)
     if (iOffsetDraw > 0)
         DrawLine(m_bOffsetDrawIsOn, ptTo, Offset(ptTo, iOffsetDraw), clr);
 
+    if (cps.IsLinear())
+    {
+        DrawLine(true, ptFrom, ptTo, clr);
+        if (iOffsetDraw > 0)
+            DrawLine(m_bOffsetDrawIsOn, Offset(ptFrom, iOffsetDraw), Offset(ptTo, iOffsetDraw), clr);
+
+        return;
+    }
+
     const int TOTALNUMBER = 20 * nSize;
     const double STEP = 1.0 / TOTALNUMBER;
 
@@ -486,7 +495,7 @@ void CChildView::DrawBezier(CtrlPoints cps, int iOffsetDraw, DWORD dwSleep)
         DrawLine(m_bOffsetDrawIsOn, Offset(ptFrom, iOffsetDraw), Offset(ptTo, iOffsetDraw), clr);
 }
 
-void CChildView::DrawFittingCurve(CtrlPoints& cps, int iOffsetDraw, bool bAutoSelfDraw)
+void CChildView::DrawFittingCurve(CtrlPoints& cps, int iOffsetDraw, bool bAutoDraw)
 {
     int nSize = cps.vecPts.size();
     if (nSize < 2)
@@ -494,39 +503,19 @@ void CChildView::DrawFittingCurve(CtrlPoints& cps, int iOffsetDraw, bool bAutoSe
         return;
     }
 
-    if (cps.IsLinear())
+    if (bAutoDraw)
     {
-        PointF ptFrom = *cps.vecPts.begin();
-        PointF ptTo = *cps.vecPts.rbegin();
-
-        Gdiplus::Color clr = Gdiplus::Color::GreenYellow;
-
-        DrawLine(true, ptFrom, ptTo, clr);
-
-        if (iOffsetDraw > 0)
-        {
-            DrawLine(m_bOffsetDrawIsOn, ptFrom, Offset(ptFrom, iOffsetDraw), clr);
-            DrawLine(m_bOffsetDrawIsOn, Offset(ptFrom, iOffsetDraw), Offset(ptTo, iOffsetDraw), clr);
-            DrawLine(m_bOffsetDrawIsOn, ptTo, Offset(ptTo, iOffsetDraw), clr);
-        }
+        if (m_bBezierIsOn)
+            m_vecAutoDrawThreadHandles.push_back((HANDLE)_beginthreadex(NULL, 0, (&CChildView::DrawBezier_auto), &cps, 0, NULL));
+        if (m_bBSplineIsOn)
+            m_vecAutoDrawThreadHandles.push_back((HANDLE)_beginthreadex(NULL, 0, (&CChildView::DrawBSpline_auto), &cps, 0, NULL));
     }
-    else // Not a linear line.
+    else
     {
-        if (bAutoSelfDraw)
-        {
-            //HANDLE hT1 = (HANDLE)_beginthreadex(nullptr, 0, reinterpret_cast<_beginthreadex_proc_type>(&CChildView::DrawBezier_auto), &cps, 0, nullptr);
-            if (m_bBezierIsOn)
-                HANDLE hT1 = (HANDLE)_beginthreadex(NULL, 0, (&CChildView::DrawBezier_auto), &cps, 0, NULL);
-            if (m_bBSplineIsOn)
-                HANDLE hT2 = (HANDLE)_beginthreadex(NULL, 0, (&CChildView::DrawBSpline_auto), &cps, 0, NULL);
-        }
-        else
-        {
-            if (m_bBezierIsOn)
-                DrawBezier(cps, iOffsetDraw);
-            if (m_bBSplineIsOn)
-                DrawBSpline(cps, iOffsetDraw);
-        }
+        if (m_bBezierIsOn)
+            DrawBezier(cps, iOffsetDraw);
+        if (m_bBSplineIsOn)
+            DrawBSpline(cps, iOffsetDraw);
     }
 }
 
@@ -573,8 +562,15 @@ void CChildView::ClearClient()
     this->ReleaseDC(pdc);
 }
 
-void CChildView::ReDrawAll(bool bAutoSelfDraw)
+void CChildView::ReDrawAll(bool bAutoDraw)
 {
+    if (!m_vecAutoDrawThreadHandles.empty())
+    {
+        ::WaitForMultipleObjects(m_vecAutoDrawThreadHandles.size(), &m_vecAutoDrawThreadHandles[0], true, 500);
+
+        m_vecAutoDrawThreadHandles.clear();
+    }
+
     ClearClient();
 
     // draw CtrlPoints first, then FittingCurves, so that there is no FittingCurves being ruined by CtrlPoints.
@@ -586,15 +582,15 @@ void CChildView::ReDrawAll(bool bAutoSelfDraw)
 
     DrawCtrlPoints(m_cgs._cps, false);
 
-    for (vector<CtrlPoints>::iterator itCtrlPoints = m_cgs.vecGrps.begin(); itCtrlPoints != m_cgs.vecGrps.end(); itCtrlPoints++)
+    if (m_bBezierIsOn || m_bBSplineIsOn)
     {
-        DrawFittingCurve(*itCtrlPoints, m_bOffsetDrawIsOn ? OFFSET_DRAW_OFFSET : 0, bAutoSelfDraw);
+        for (vector<CtrlPoints>::iterator itCtrlPoints = m_cgs.vecGrps.begin(); itCtrlPoints != m_cgs.vecGrps.end(); itCtrlPoints++)
+        {
+            DrawFittingCurve(*itCtrlPoints, m_bOffsetDrawIsOn ? OFFSET_DRAW_OFFSET : 0, bAutoDraw);
+        }
+
+        DrawFittingCurve(m_cgs._cps, m_bOffsetDrawIsOn ? 5 : 0, bAutoDraw);
     }
-
-    DrawFittingCurve(m_cgs._cps, m_bOffsetDrawIsOn ? 5 : 0, bAutoSelfDraw);
-
-
-
 
 
 
@@ -610,6 +606,24 @@ void CChildView::ReDrawAll(bool bAutoSelfDraw)
     //graphics.FillEllipse(&SolidBrush(Color(255, 0, 0, 0)), 200, 0, 200, 100);
 }
 
+void CChildView::Init()
+{
+    m_cgs.Init(this);
+    m_cgs_copy.Init(this);
+
+    m_strFileName = "";
+
+    m_bBezierIsOn = true;
+    m_bBSplineIsOn = true;
+    m_bOffsetDrawIsOn = true;
+
+    m_bLBtnClickInClient = false;
+
+    m_bDraggable = false;
+    m_bDragging = false;
+
+    m_vecAutoDrawThreadHandles.clear();
+}
 
 void CChildView::LoadCGSFromFile(string& strFileName)
 {
@@ -714,9 +728,9 @@ double CChildView::N1(int i, double u)
 {
     double t = u - i;
 
-    if (0 <= t && t<1)
+    if (0 <= t && t < 1)
         return t;
-    if (1 <= t && t<2)
+    if (1 <= t && t < 2)
         return 2 - t;
     return 0;
 }
@@ -725,11 +739,11 @@ double CChildView::N2(int i, double u)
 {
     double t = u - i;
 
-    if (0 <= t && t<1)
+    if (0 <= t && t < 1)
         return 0.5*t*t;
-    if (1 <= t && t<2)
+    if (1 <= t && t < 2)
         return 3 * t - t*t - 1.5;
-    if (2 <= t && t<3)
+    if (2 <= t && t < 3)
         return 0.5*pow(3 - t, 2);
     return 0;
 }
@@ -739,13 +753,13 @@ double CChildView::N3(int i, double u)
     double t = u - i;
     double a = 1.0 / 6.0;
 
-    if (0 <= t && t<1)
+    if (0 <= t && t < 1)
         return a*t*t*t;
-    if (1 <= t && t<2)
+    if (1 <= t && t < 2)
         return a*(-3 * pow(t - 1, 3) + 3 * pow(t - 1, 2) + 3 * (t - 1) + 1);
-    if (2 <= t && t<3)
+    if (2 <= t && t < 3)
         return a*(3 * pow(t - 2, 3) - 6 * pow(t - 2, 2) + 4);
-    if (3 <= t && t<4)
+    if (3 <= t && t < 4)
         return a*pow(4 - t, 3);
     return 0;
 }

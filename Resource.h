@@ -11,9 +11,10 @@
 #define ID_APP_BSPLINE                  32772
 #define ID_APP_OFFSET_DRAW              32773
 #define ID_APP_DELETE_LAST              32774
-#define ID_APP_OPEN                     32775
-#define ID_APP_SAVE                     32776
-#define ID_APP_SAVE_AS                  32777
+#define ID_APP_NEW                      32775
+#define ID_APP_OPEN                     32776
+#define ID_APP_SAVE                     32777
+#define ID_APP_SAVE_AS                  32778
 
 // Next default values for new objects
 // 

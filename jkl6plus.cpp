@@ -18,6 +18,7 @@ BEGIN_MESSAGE_MAP(Cjkl6plusApp, CWinApp)
     ON_COMMAND(ID_APP_BSPLINE, &Cjkl6plusApp::OnAppBSpline)
     ON_COMMAND(ID_APP_OFFSET_DRAW, &Cjkl6plusApp::OnAppOffsetDraw)
     ON_COMMAND(ID_APP_DELETE_LAST, &Cjkl6plusApp::OnAppDeleteLast)
+    ON_COMMAND(ID_APP_NEW, &Cjkl6plusApp::OnAppNew)
     ON_COMMAND(ID_APP_OPEN, &Cjkl6plusApp::OnAppOpen)
     ON_COMMAND(ID_APP_SAVE, &Cjkl6plusApp::OnAppSave)
     ON_COMMAND(ID_APP_SAVE_AS, &Cjkl6plusApp::OnAppSaveAs)
@@ -120,6 +121,24 @@ void Cjkl6plusApp::OnAppOffsetDraw()
 void Cjkl6plusApp::OnAppDeleteLast()
 {
     ((CMainFrame*)m_pMainWnd)->m_ChildView.DeleteLast();
+}
+
+void Cjkl6plusApp::OnAppNew()
+{
+    if (((CMainFrame*)m_pMainWnd)->m_ChildView.HasCGSChanged())
+    {
+        if (AfxMessageBox("Do you want to save current change?", MB_YESNO) == IDYES)
+        {
+            OnAppSave();
+        }
+    }
+
+    ((CMainFrame*)m_pMainWnd)->m_ChildView.Init();
+    ((CMainFrame*)m_pMainWnd)->m_ChildView.ReDrawAll();
+
+    UpdateMenuItems(ID_APP_BEZIER, CString("Bezier:"), ((CMainFrame*)m_pMainWnd)->m_ChildView.GetBezierSwitch());
+    UpdateMenuItems(ID_APP_BSPLINE, CString("B-Spline:"), ((CMainFrame*)m_pMainWnd)->m_ChildView.GetBSplineSwitch());
+    UpdateMenuItems(ID_APP_OFFSET_DRAW, CString("Offset Draw:"), ((CMainFrame*)m_pMainWnd)->m_ChildView.GetOffsetDrawSwitch());
 }
 
 void Cjkl6plusApp::OnAppOpen()

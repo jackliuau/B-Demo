@@ -45,6 +45,7 @@ BEGIN
     MENUITEM "B-Spline:On",                 ID_APP_BSPLINE
     MENUITEM "Offset Draw:On",              ID_APP_OFFSET_DRAW
     MENUITEM "Delete Last",                 ID_APP_DELETE_LAST
+    MENUITEM "New",                         ID_APP_NEW
     MENUITEM "Open",                        ID_APP_OPEN
     MENUITEM "Save",                        ID_APP_SAVE
     MENUITEM "Save As",                     ID_APP_SAVE_AS

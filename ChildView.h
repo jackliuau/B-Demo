@@ -49,9 +49,10 @@ struct CtrlPoints
     void* powner;
     vector<PointF> vecPts;
 
-    void SetOwner(void* po)
+    void Init(void* po)
     {
         powner = po;
+        vecPts.clear();
     }
 
     void FromString(string& str)
@@ -167,9 +168,10 @@ struct CtrlGroups
     CtrlPoints _cps; // currently editing one.
     vector<CtrlPoints> vecGrps;
 
-    void SetOwner(void* po)
+    void Init(void* po)
     {
-        _cps.SetOwner(po);
+        _cps.Init(po);
+        vecGrps.clear();
     }
 
     void FromString(string& str)
@@ -190,7 +192,7 @@ struct CtrlGroups
         while (std::getline(iss, s))
         {
             CtrlPoints cps;
-            cps.SetOwner(_cps.powner);
+            cps.Init(_cps.powner);
             cps.FromString(s);
             if (cps.vecPts.size() > 0)
             {
@@ -317,14 +319,16 @@ public:
     static unsigned __stdcall DrawBezier_auto(void *pvoid);
     void DrawBezier(CtrlPoints cps, int iOffsetDraw, DWORD dwSleep = 0);
 
-    void DrawFittingCurve(CtrlPoints& cps, int iOffsetDraw, bool bAutoSelfDraw);
+    void DrawFittingCurve(CtrlPoints& cps, int iOffsetDraw, bool bAutoDraw);
     void DrawCtrlPoints(CtrlPoints cps, bool bEnded);
 
     void ClearClient();
 
-    void ReDrawAll(bool bAutoSelfDraw = false);
+    void ReDrawAll(bool bAutoDraw = false);
 
 public:
+    void Init();
+
     void LoadCGSFromFile(string& strFileName);
     void SaveCGSIntoFile(string& strFileName);
 
@@ -353,12 +357,16 @@ protected:
 
     string m_strFileName;
 
-    _index_  m_idxDragging;
+    bool m_bBezierIsOn;
+    bool m_bBSplineIsOn;
+    bool m_bOffsetDrawIsOn;
 
     bool m_bLBtnClickInClient;
 
     bool m_bDraggable;
     bool m_bDragging;
+
+    _index_  m_idxDragging;
 
     CMutex mtx_pascal_triangle;
     PascalTriangle  pascal_triangle;
@@ -371,9 +379,7 @@ protected:
     CMutex mtx_gdiplus_graphics;
     Gdiplus::Graphics* m_pGdiplusGraphics;
 
-    bool m_bBezierIsOn;
-    bool m_bBSplineIsOn;
-    bool m_bOffsetDrawIsOn;
+    std::vector<HANDLE> m_vecAutoDrawThreadHandles;
 
 protected:
     virtual BOOL PreCreateWindow(CREATESTRUCT& cs);

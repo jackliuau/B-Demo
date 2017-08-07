@@ -35,6 +35,7 @@ public:
     afx_msg void OnAppBSpline();
     afx_msg void OnAppOffsetDraw();
     afx_msg void OnAppDeleteLast();
+    afx_msg void OnAppNew();
     afx_msg void OnAppOpen();
     afx_msg void OnAppSave();
     afx_msg void OnAppSaveAs();

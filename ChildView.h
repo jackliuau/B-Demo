@@ -99,6 +99,7 @@ struct CtrlPoints
             {
                 return jj;
             }
+            jj++;
         }
 
         return -1;
@@ -222,6 +223,7 @@ struct CtrlGroups
             {
                 return _index_(ii, jj);
             }
+            ii++;
         }
 
         int jj = _cps.IsPointSelectable(pt);

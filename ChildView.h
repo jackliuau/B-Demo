@@ -80,9 +80,9 @@ struct CtrlPoints
     string ToString()
     {
         std::ostringstream oss;
-        for (vector<PointF>::iterator itPt = vecPts.begin(); itPt != vecPts.end(); itPt ++)
+        for (PointF& ptf : vecPts)
         {
-            oss << itPt->X << xy_delimiter << itPt->Y << pt_delimiter;
+            oss << ptf.X << xy_delimiter << ptf.Y << pt_delimiter;
         }
         return oss.str();
     }
@@ -92,10 +92,10 @@ struct CtrlPoints
         const int pt_on_distance = 5;
 
         int jj = 0;
-        for (vector<PointF>::iterator itCtrlPoint = vecPts.begin(); itCtrlPoint != vecPts.end(); itCtrlPoint++, jj++)
+        for (PointF& ptf : vecPts)
         {
-            if (abs(itCtrlPoint->X - pt.x) < pt_on_distance &&
-                abs(itCtrlPoint->Y - pt.y) < pt_on_distance)
+            if (abs(ptf.X - pt.x) < pt_on_distance &&
+                abs(ptf.Y - pt.y) < pt_on_distance)
             {
                 return jj;
             }
@@ -106,10 +106,10 @@ struct CtrlPoints
 
     void Offset(CPoint ptOffset)
     {
-        for (vector<PointF>::iterator itCtrlPoint = vecPts.begin(); itCtrlPoint != vecPts.end(); itCtrlPoint++)
+        for (PointF& ptf : vecPts)
         {
-            itCtrlPoint->X += ptOffset.x;
-            itCtrlPoint->Y += ptOffset.y;
+            ptf.X += ptOffset.x;
+            ptf.Y += ptOffset.y;
         }
     }
 
@@ -204,9 +204,9 @@ struct CtrlGroups
     string ToString()
     {
         std::ostringstream oss;
-        for (vector<CtrlPoints>::iterator itGrp = vecGrps.begin(); itGrp != vecGrps.end(); itGrp ++)
+        for (CtrlPoints& cps : vecGrps)
         {
-            oss << itGrp->ToString() << std::endl;
+            oss << cps.ToString() << std::endl;
         }
         oss << _cps.ToString() << std::endl;
         return oss.str();
@@ -215,9 +215,9 @@ struct CtrlGroups
     _index_ IsPointSelectable(CPoint pt)
     {
         int ii = 0;
-        for (vector<CtrlPoints>::iterator itCtrlPoints = vecGrps.begin(); itCtrlPoints != vecGrps.end(); itCtrlPoints++, ii++)
+        for (CtrlPoints& cps : vecGrps)
         {
-            int jj = itCtrlPoints->IsPointSelectable(pt);
+            int jj = cps.IsPointSelectable(pt);
             if (jj != -1)
             {
                 return _index_(ii, jj);
@@ -235,9 +235,9 @@ struct CtrlGroups
 
     void Offset(CPoint ptOffset)
     {
-        for (vector<CtrlPoints>::iterator itCtrlPoints = vecGrps.begin(); itCtrlPoints != vecGrps.end(); itCtrlPoints++)
+        for (CtrlPoints& cps : vecGrps)
         {
-            itCtrlPoints->Offset(ptOffset);
+            cps.Offset(ptOffset);
         }
     }
 

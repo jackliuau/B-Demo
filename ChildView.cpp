@@ -575,18 +575,18 @@ void CChildView::ReDrawAll(bool bAutoDraw)
 
     // draw CtrlPoints first, then FittingCurves, so that there is no FittingCurves being ruined by CtrlPoints.
 
-    for (vector<CtrlPoints>::iterator itCtrlPoints = m_cgs.vecGrps.begin(); itCtrlPoints != m_cgs.vecGrps.end(); itCtrlPoints++)
+    for (CtrlPoints& cps : m_cgs.vecGrps)
     {
-        DrawCtrlPoints(*itCtrlPoints, true);
+        DrawCtrlPoints(cps, true);
     }
 
     DrawCtrlPoints(m_cgs._cps, false);
 
     if (m_bBezierIsOn || m_bBSplineIsOn)
     {
-        for (vector<CtrlPoints>::iterator itCtrlPoints = m_cgs.vecGrps.begin(); itCtrlPoints != m_cgs.vecGrps.end(); itCtrlPoints++)
+        for (CtrlPoints& cps : m_cgs.vecGrps)
         {
-            DrawFittingCurve(*itCtrlPoints, m_bOffsetDrawIsOn ? OFFSET_DRAW_OFFSET : 0, bAutoDraw);
+            DrawFittingCurve(cps, m_bOffsetDrawIsOn ? OFFSET_DRAW_OFFSET : 0, bAutoDraw);
         }
 
         DrawFittingCurve(m_cgs._cps, m_bOffsetDrawIsOn ? 5 : 0, bAutoDraw);
